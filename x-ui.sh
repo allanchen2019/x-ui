@@ -39,40 +39,18 @@ else
     LOGE "未检测到系统版本，请联系脚本作者！\n" && exit 1
 fi
 
-os_version=""
 
-# os version
-if [[ -f /etc/os-release ]]; then
-    os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
-fi
-if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
-    os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
-fi
-
-if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 6 ]]; then
-        LOGE "请使用 CentOS 7 或更高版本的系统！\n" && exit 1
-    fi
-elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 16 ]]; then
-        LOGE "请使用 Ubuntu 16 或更高版本的系统！\n" && exit 1
-    fi
-elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        LOGE "请使用 Debian 8 或更高版本的系统！\n" && exit 1
-    fi
-fi
 
 confirm() {
     if [[ $# > 1 ]]; then
         echo && read -p "$1 [默认$2]: " temp
-        if [[ x"${temp}" == x"" ]]; then
+        if [[ "${temp}" == "" ]]; then
             temp=$2
         fi
     else
         read -p "$1 [y/n]: " temp
     fi
-    if [[ x"${temp}" == x"y" || x"${temp}" == x"Y" ]]; then
+    if [[ "${temp}" == "y" || "${temp}" == "Y" ]]; then
         return 0
     else
         return 1
@@ -186,7 +164,7 @@ set_port() {
         LOGD "已取消"
         before_show_menu
     else
-        /usr/local/x-ui/x-ui setting -port ${port}
+        /usr/local/x-ui/x-ui setting -port "${port}"
         echo -e "设置端口完毕，现在请重启面板，并使用新设置的端口 ${green}${port}${plain} 访问面板"
         confirm_restart
     fi
@@ -319,7 +297,7 @@ check_status() {
         return 2
     fi
     temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-    if [[ x"${temp}" == x"running" ]]; then
+    if [[ "${temp}" == "running" ]]; then
         return 0
     else
         return 1
@@ -328,7 +306,7 @@ check_status() {
 
 check_enabled() {
     temp=$(systemctl is-enabled x-ui)
-    if [[ x"${temp}" == x"enabled" ]]; then
+    if [[ "${temp}" == "enabled" ]]; then
         return 0
     else
         return 1
@@ -418,7 +396,7 @@ ssl_cert_issue() {
     LOGI "4.该脚本申请证书默认安装路径为/root/cert目录"
     confirm "我已确认以上内容[y/n]" "y"
     if [ $? -eq 0 ]; then
-        cd ~
+        cd ~ || exit
         LOGI "安装Acme脚本"
         curl https://get.acme.sh | sh
         if [ $? -ne 0 ]; then
@@ -451,16 +429,16 @@ ssl_cert_issue() {
         fi
         export CF_Key="${CF_GlobalKey}"
         export CF_Email=${CF_AccountEmail}
-        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log
+        ~/.acme.sh/acme.sh --issue --dns dns_cf -d "${CF_Domain}" -d *."${CF_Domain}" --log
         if [ $? -ne 0 ]; then
             LOGE "证书签发失败,脚本退出"
             exit 1
         else
             LOGI "证书签发成功,安装中..."
         fi
-        ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} --ca-file /root/cert/ca.cer \
-        --cert-file /root/cert/${CF_Domain}.cer --key-file /root/cert/${CF_Domain}.key \
-        --fullchain-file /root/cert/fullchain.cer
+        ~/.acme.sh/acme.sh --installcert -d "${CF_Domain}" -d *."${CF_Domain}" --ca-file /root/cert/ca.cer \
+            --cert-file /root/cert/"${CF_Domain}".cer --key-file /root/cert/"${CF_Domain}".key \
+            --fullchain-file /root/cert/fullchain.cer
         if [ $? -ne 0 ]; then
             LOGE "证书安装失败,脚本退出"
             exit 1
